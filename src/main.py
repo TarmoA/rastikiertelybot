@@ -8,13 +8,41 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+# Which checkpoints are available?
+activeCheckpoints = range(1,3)
+
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
-    text = """TODO kuvaus
-    """
+    text = """TODO kuvaus"""
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
+def helpMessage(update, context):
+    text = """TODO mistä saa apua?"""
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+
+def mapMessage(update, context):
+    text = """TODO anna kartta"""
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+
+def register(update, context):
+    text = """TODO rekisteröi"""
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+
+def arrive(update, context):
+    text = update.message.text
+    parts = text.split(" ")
+    if len(parts) < 2:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Anna rastinumero TODO")
+        return
+
+    checkpointNo = int(parts[1])
+    reply = ""
+    if checkpointNo and checkpointNo in activeCheckpoints:
+        reply = "Tervetuloa rastille " + str(checkpointNo) + " TODO ohjeet"
+    else:
+        reply = "Error: checkpoint number " + str(checkpointNo) + " not found"
+    context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
 
 
 # def handlePhoto(bot, update):
@@ -35,9 +63,9 @@ def start(update, context):
 #         update.message.reply_text('error')
 
 
-def error(update, context, error):
-    """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, error)
+# def error(update, context, error):
+#     """Log Errors caused by Updates."""
+#     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
 
@@ -51,6 +79,10 @@ def main():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", helpMessage))
+    dp.add_handler(CommandHandler("map", mapMessage))
+    dp.add_handler(CommandHandler("register", register))
+    dp.add_handler(CommandHandler("arrive", arrive))
     # dp.add_handler(MessageHandler(Filters.photo & Filters.private, handlePhoto))
 
     # log all errors
