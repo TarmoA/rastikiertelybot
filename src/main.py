@@ -8,11 +8,18 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+# some conf values here, TODO move them elsewhere
 # Which checkpoints are available?
 activeCheckpoints = range(1,3)
+dataDir = './data/'
+instructionsDir = dataDir + 'instructions/'
+hintsDir = dataDir + 'hints/'
+mapLink = "TODO link to map here"
 
 # parse checkpoint number from message and return it as number or None
 def parseCheckpointNumber(update):
+    if not update.message:
+        return None
     text = update.message.text
     parts = text.split(" ")
     if len(parts) < 2:
@@ -27,13 +34,26 @@ def parseCheckpointNumber(update):
 # return error message or None
 def getCheckpointNumberError(checkpointNo):
     if checkpointNo == None:
-        return "Anna rastinumero TODO"
+        return "Please give the checkpoint number"
     if checkpointNo not in activeCheckpoints:
         return "Checkpoint number not found"
     return None
 
 def getInstructions(number):
-    return "TODO ohjeet"
+    try:
+        file = open(instructionsDir + str(number)+ ".txt")
+        text = file.read()
+        return text
+    except:
+        return "ERROR: instructions not found"
+
+def getHint(number):
+    try:
+        file = open(hintsDir + str(number)+ ".txt")
+        text = file.read()
+        return text
+    except:
+        return "ERROR: hints not found"
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -46,7 +66,7 @@ def helpMessage(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def mapMessage(update, context):
-    text = """TODO anna kartta"""
+    text = mapLink
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def register(update, context):
@@ -60,7 +80,7 @@ def arrive(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
         return
 
-    reply = "Tervetuloa rastille " + str(checkpointNo) + getInstructions(checkpointNo)
+    reply = "Welcome to checkpoint " + str(checkpointNo) +"!\n\n" + getInstructions(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
     return
 
@@ -70,8 +90,14 @@ def complete(update, context):
     if error:
         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
         return
-
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Suoritus vastaanotettu jotain jotain")
+    # TODO handle photo/video
+    text = "Proof of completion received for checkpoint " + str(checkpointNo) + "."
+    nextCheckpoint = checkpointNo + 1
+    if nextCheckpoint in activeCheckpoints:
+        text += " Here is the hint for checkpoint " + str(nextCheckpoint) + ": \n\n" + getHint(nextCheckpoint)
+    else:
+        text += " This was the last check point. TODO instructions here?"
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     return
 
 def hint(update, context):
@@ -81,7 +107,7 @@ def hint(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
         return
 
-    reply = getInstructions(checkpointNo)
+    reply = "Here is the hint for checkpoint " + str(checkpointNo) + ": \n\n" + getHint(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
 
 # def handlePhoto(bot, update):

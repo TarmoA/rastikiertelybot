@@ -5,5 +5,6 @@ COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 COPY ./src .
 COPY ./key.json .
+COPY ./data ./data
 
 CMD ["python", "main.py"]
