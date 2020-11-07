@@ -11,6 +11,30 @@ logger = logging.getLogger(__name__)
 # Which checkpoints are available?
 activeCheckpoints = range(1,3)
 
+# parse checkpoint number from message and return it as number or None
+def parseCheckpointNumber(update):
+    text = update.message.text
+    parts = text.split(" ")
+    if len(parts) < 2:
+        return None
+    number = parts[1]
+    try:
+        return int(number)
+    except ValueError:
+        return None
+
+# Get error message if checkpoint number is not valid
+# return error message or None
+def getCheckpointNumberError(checkpointNo):
+    if checkpointNo == None:
+        return "Anna rastinumero TODO"
+    if checkpointNo not in activeCheckpoints:
+        return "Checkpoint number not found"
+    return None
+
+def getInstructions(number):
+    return "TODO ohjeet"
+
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
@@ -30,20 +54,35 @@ def register(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def arrive(update, context):
-    text = update.message.text
-    parts = text.split(" ")
-    if len(parts) < 2:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Anna rastinumero TODO")
+    checkpointNo = parseCheckpointNumber(update)
+    error = getCheckpointNumberError(checkpointNo)
+    if error:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=error)
         return
 
-    checkpointNo = int(parts[1])
-    reply = ""
-    if checkpointNo and checkpointNo in activeCheckpoints:
-        reply = "Tervetuloa rastille " + str(checkpointNo) + " TODO ohjeet"
-    else:
-        reply = "Error: checkpoint number " + str(checkpointNo) + " not found"
+    reply = "Tervetuloa rastille " + str(checkpointNo) + getInstructions(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
+    return
 
+def complete(update, context):
+    checkpointNo = parseCheckpointNumber(update)
+    error = getCheckpointNumberError(checkpointNo)
+    if error:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=error)
+        return
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Suoritus vastaanotettu jotain jotain")
+    return
+
+def hint(update, context):
+    checkpointNo = parseCheckpointNumber(update)
+    error = getCheckpointNumberError(checkpointNo)
+    if error:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=error)
+        return
+
+    reply = getInstructions(checkpointNo)
+    context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
 
 # def handlePhoto(bot, update):
 #     """Handle a photo sent in by user"""
@@ -83,6 +122,8 @@ def main():
     dp.add_handler(CommandHandler("map", mapMessage))
     dp.add_handler(CommandHandler("register", register))
     dp.add_handler(CommandHandler("arrive", arrive))
+    dp.add_handler(CommandHandler("complete", complete))
+    dp.add_handler(CommandHandler("hint", hint))
     # dp.add_handler(MessageHandler(Filters.photo & Filters.private, handlePhoto))
 
     # log all errors
