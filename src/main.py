@@ -71,6 +71,7 @@ def mapMessage(update, context):
 
 def register(update, context):
     text = """TODO rekisteröi"""
+    # TODO register to some db?
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def arrive(update, context):
@@ -91,6 +92,7 @@ def complete(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
         return
     # TODO handle photo/video
+    # TODO how to save the image/video
     text = "Proof of completion received for checkpoint " + str(checkpointNo) + "."
     nextCheckpoint = checkpointNo + 1
     if nextCheckpoint in activeCheckpoints:
@@ -98,6 +100,7 @@ def complete(update, context):
     else:
         text += " This was the last check point. TODO instructions here?"
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    # TODO forward the message to a hardcoded group?
     return
 
 def hint(update, context):
@@ -149,6 +152,7 @@ def main():
     dp.add_handler(CommandHandler("register", register))
     dp.add_handler(CommandHandler("arrive", arrive))
     dp.add_handler(CommandHandler("complete", complete))
+    # TODO how to get command with image
     dp.add_handler(CommandHandler("hint", hint))
     # dp.add_handler(MessageHandler(Filters.photo & Filters.private, handlePhoto))
 
