@@ -1,6 +1,7 @@
 # encoding: utf-8
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging, json, os, sys, re
+import data
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -15,6 +16,7 @@ dataDir = './data/'
 instructionsDir = dataDir + 'instructions/'
 hintsDir = dataDir + 'hints/'
 mapLink = "TODO link to map here"
+forwardId = -268576389
 
 # parse checkpoint number from message and return it as number or None
 def parseCheckpointNumber(update):
@@ -71,6 +73,7 @@ def mapMessage(update, context):
 
 def register(update, context):
     text = """TODO rekisteröi"""
+
     # TODO register to some db?
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
@@ -85,23 +88,20 @@ def arrive(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
     return
 
-def complete(update, context):
-    checkpointNo = parseCheckpointNumber(update)
-    error = getCheckpointNumberError(checkpointNo)
-    if error:
-        context.bot.send_message(chat_id=update.effective_chat.id, text=error)
-        return
-    # TODO handle photo/video
-    # TODO how to save the image/video
-    text = "Proof of completion received for checkpoint " + str(checkpointNo) + "."
-    nextCheckpoint = checkpointNo + 1
-    if nextCheckpoint in activeCheckpoints:
-        text += " Here is the hint for checkpoint " + str(nextCheckpoint) + ": \n\n" + getHint(nextCheckpoint)
-    else:
-        text += " This was the last check point. TODO instructions here?"
-    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
-    # TODO forward the message to a hardcoded group?
-    return
+# def complete(update, context):
+#     checkpointNo = parseCheckpointNumber(update)
+#     error = getCheckpointNumberError(checkpointNo)
+#     if error:
+#         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
+#         return
+#     text = "Proof of completion received for checkpoint " + str(checkpointNo) + "."
+#     nextCheckpoint = checkpointNo + 1
+#     if nextCheckpoint in activeCheckpoints:
+#         text += " Here is the hint for checkpoint " + str(nextCheckpoint) + ": \n\n" + getHint(nextCheckpoint)
+#     else:
+#         text += " This was the last check point. TODO instructions here?"
+#     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+#     return
 
 def hint(update, context):
     checkpointNo = parseCheckpointNumber(update)
@@ -113,29 +113,71 @@ def hint(update, context):
     reply = "Here is the hint for checkpoint " + str(checkpointNo) + ": \n\n" + getHint(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
 
-# def handlePhoto(bot, update):
-#     """Handle a photo sent in by user"""
-#     message = update.message
-#     user = update.effective_user
-#     if message.photo and len(message.photo):
-#         # get full size photo
-#         photoObj = message.photo[-1]
-#         chatId = message.chat_id
-#         messageId = message.message_id
-#         filePath = BASE_FILE_PATH.format(chatId, messageId)
-#         file = bot.get_file(photoObj.file_id)
-#         file.download(filePath)
+def handlePhotoOrVideo(update, context):
+    """Handle a photo sent in by user"""
+    message = update.message
+    user = update.effective_user
+    messageId = message.message_id
+    if not message.photo and len(message.photo) and not message.video:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text="TODO no photo or video in message?")
+        return
+    if not message.caption:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Give checkpoint number in caption")
+        return
+    try:
+        checkpointNo = int(message.caption)
+        error = getCheckpointNumberError(checkpointNo)
+        if error:
+            context.bot.send_message(
+                chat_id=update.effective_chat.id, text="TODO invalid checkpoint")
+            return
+    except:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="TODO invalid checkpoint throw")
+        return
+    data.storeCompletion(user.id, messageId, checkpointNo)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Completion proof received for checkpoint " + str(checkpointNo))
+
+
+
+        # context.bot.forward_message(chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id =update.message.message_id)
+
 
 
 #     else:
 #         update.message.reply_text('error')
 
+def stop(update, context):
+    completions = data.getCompletions(update.effective_user.id)
+    if not completions:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text="No completion proofs received yet")
+        return
+    context.bot.send_message(
+        chat_id=forwardId, text="Completion for user: " + str(update.effective_chat.id))
+    for item in completions:
+        context.bot.forward_message(
+            chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))
+    context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Completions sent to organizers for review. Thank you for participating!")
 
-# def error(update, context, error):
-#     """Log Errors caused by Updates."""
-#     logger.warning('Update "%s" caused error "%s"', update, error)
+
+def error(update, context):
+    """Log Errors caused by Updates."""
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Message caused bot error")
 
 
+def logMessage(update, context):
+    logger.info(update.effective_chat.id)
+    logger.info(update.message.text)
+    # logger.debug(update.message.text)
+    # logger.warning(update.message.text)
+    # context.bot.forward_message(
+    #     chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id=update.message.message_id)
 
 def main():
     """Start the bot."""
@@ -145,19 +187,21 @@ def main():
     updater = Updater(token=token)
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
-
+    dp.add_handler(MessageHandler(Filters.group, lambda: None)) # ignore group chat messages
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpMessage))
     dp.add_handler(CommandHandler("map", mapMessage))
     dp.add_handler(CommandHandler("register", register))
     dp.add_handler(CommandHandler("arrive", arrive))
-    dp.add_handler(CommandHandler("complete", complete))
-    # TODO how to get command with image
+    # dp.add_handler(CommandHandler("complete", complete))
+    dp.add_handler(CommandHandler("stop", stop))
     dp.add_handler(CommandHandler("hint", hint))
-    # dp.add_handler(MessageHandler(Filters.photo & Filters.private, handlePhoto))
+    dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, handlePhotoOrVideo))
+    dp.add_handler(MessageHandler(Filters.all, logMessage))
+
 
     # log all errors
-    # dp.add_error_handler(error)
+    dp.add_error_handler(error)
 
     # Start the Bot
     updater.start_polling()
