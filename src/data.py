@@ -42,4 +42,4 @@ async def getCompletions(userId):
     async with getDB() as database:
         query = "SELECT * from completions where userid = :userid"
         rows = await database.fetch_all(query=query, values={"userid": userId})
-        return map (lambda r: {"messageId": r.get("messageid")}, rows)
+        return list(map(lambda r: {"messageId": r.get("messageid"), "checkpointNo": r.get("checkpointno")}, rows))

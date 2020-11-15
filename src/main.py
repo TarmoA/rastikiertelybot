@@ -50,8 +50,6 @@ def getHint(number):
     except:
         return "ERROR: hints not found"
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
     text = """TODO kuvaus"""
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -84,21 +82,6 @@ def arrive(update, context):
     reply = "Welcome to checkpoint " + str(checkpointNo) +"!\n\n" + getInstructions(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
     return
-
-# def complete(update, context):
-#     checkpointNo = parseCheckpointNumber(update)
-#     error = getCheckpointNumberError(checkpointNo)
-#     if error:
-#         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
-#         return
-#     text = "Proof of completion received for checkpoint " + str(checkpointNo) + "."
-#     nextCheckpoint = checkpointNo + 1
-#     if nextCheckpoint in activeCheckpoints:
-#         text += " Here is the hint for checkpoint " + str(nextCheckpoint) + ": \n\n" + getHint(nextCheckpoint)
-#     else:
-#         text += " This was the last check point. TODO instructions here?"
-#     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
-#     return
 
 def hint(update, context):
     checkpointNo = parseCheckpointNumber(update)
@@ -140,14 +123,14 @@ async def handlePhotoOrVideo(update, context):
 
 async def stop(update, context):
     completions = await data.getCompletions(update.effective_user.id)
-    if not completions:
+    if not completions or not len(completions):
         context.bot.send_message(
             chat_id=update.effective_chat.id, text="No completion proofs received yet")
         return
-
+    completions.sort(key=lambda i: i["checkpointNo"])
     teamName = await data.getTeamName(update.effective_user.id)
     context.bot.send_message(
-        chat_id=config["forwardId"], text="Completion for user: " + teamName)
+        chat_id=config["forwardId"], text="Completion for team: " + teamName)
     for item in completions:
         context.bot.forward_message(
             chat_id=config["forwardId"], from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))
