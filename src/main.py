@@ -1,7 +1,8 @@
 # encoding: utf-8
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import logging, json, os, sys, re, asyncio
+import logging, os, sys, re, asyncio
 import data
+from config import config
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -9,14 +10,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-# some conf values here, TODO move them elsewhere
-# Which checkpoints are available?
-activeCheckpoints = range(1,3)
-dataDir = './data/'
-instructionsDir = dataDir + 'instructions/'
-hintsDir = dataDir + 'hints/'
-mapLink = "TODO link to map here"
-forwardId = -268576389
 
 # parse checkpoint number from message and return it as number or None
 def parseCheckpointNumber(update):
@@ -37,13 +30,13 @@ def parseCheckpointNumber(update):
 def getCheckpointNumberError(checkpointNo):
     if checkpointNo == None:
         return "Please give the checkpoint number"
-    if checkpointNo not in activeCheckpoints:
+    if checkpointNo not in config["activeCheckpoints"]:
         return "Checkpoint number not found"
     return None
 
 def getInstructions(number):
     try:
-        file = open(instructionsDir + str(number)+ ".txt")
+        file = open(config["instructionsDir"] + str(number)+ ".txt")
         text = file.read()
         return text
     except:
@@ -51,7 +44,7 @@ def getInstructions(number):
 
 def getHint(number):
     try:
-        file = open(hintsDir + str(number)+ ".txt")
+        file = open(config["hintsDir"] + str(number)+ ".txt")
         text = file.read()
         return text
     except:
@@ -68,7 +61,7 @@ def helpMessage(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def mapMessage(update, context):
-    text = mapLink
+    text = config["mapLink"]
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 async def register(update, context):
@@ -154,10 +147,10 @@ async def stop(update, context):
 
     teamName = await data.getTeamName(update.effective_user.id)
     context.bot.send_message(
-        chat_id=forwardId, text="Completion for user: " + teamName)
+        chat_id=config["forwardId"], text="Completion for user: " + teamName)
     for item in completions:
         context.bot.forward_message(
-            chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))
+            chat_id=config["forwardId"], from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))
     context.bot.send_message(
         chat_id=update.effective_chat.id, text="Completions sent to organizers for review. Thank you for participating!")
 
@@ -176,7 +169,7 @@ def logMessage(update, context):
 async def main():
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
-    token = json.loads(open("key.json").read())['key']
+    token = config['key']
 
     await data.init()
 

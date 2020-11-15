@@ -1,2 +1,5 @@
-Pillow
 python-telegram-bot
+databases
+databases[postgresql]
+ipython
+asyncpg

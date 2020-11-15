@@ -4,7 +4,7 @@ WORKDIR /app
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 COPY ./src .
-COPY ./key.json .
+COPY ./config .
 COPY ./data ./data
 
 CMD ["python", "main.py"]

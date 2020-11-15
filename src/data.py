@@ -1,11 +1,12 @@
 from databases import Database
 import logging
 import asyncio
+from config import config
 logger = logging.getLogger(__name__)
 
 
 def getDB():
-    return Database('postgresql://postgres:asd@postgres?')
+    return Database(config["dbConnectionString"])
 
 async def init():
     async with getDB() as database:
