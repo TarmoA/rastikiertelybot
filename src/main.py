@@ -51,7 +51,20 @@ def getHint(number):
         return "ERROR: hints not found"
 
 def start(update, context):
-    text = """TODO kuvaus"""
+    text = """
+Instructions
+
+Commands
+/start - Show this help message
+/register <name> -  register your team name to the bot.
+/help - ???
+/map - get link to map
+/arrive <number> - Use this when you arrive to checkpoint to receive checkpoint instructions
+/stop - This command will signify that you have completed the checkpoint crawl and your submissions will be sent to the organisers.
+
+To get credit for completing checkpoints, send a video or photo to the bot, with checkpoint number as the caption.
+
+"""
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def helpMessage(update, context):
@@ -83,15 +96,15 @@ def arrive(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
     return
 
-def hint(update, context):
-    checkpointNo = parseCheckpointNumber(update)
-    error = getCheckpointNumberError(checkpointNo)
-    if error:
-        context.bot.send_message(chat_id=update.effective_chat.id, text=error)
-        return
+# def hint(update, context):
+#     checkpointNo = parseCheckpointNumber(update)
+#     error = getCheckpointNumberError(checkpointNo)
+#     if error:
+#         context.bot.send_message(chat_id=update.effective_chat.id, text=error)
+#         return
 
-    reply = "Here is the hint for checkpoint " + str(checkpointNo) + ": \n\n" + getHint(checkpointNo)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
+#     reply = "Here is the hint for checkpoint " + str(checkpointNo) + ": \n\n" + getHint(checkpointNo)
+#     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
 
 async def handlePhotoOrVideo(update, context):
     """Handle a photo sent in by user"""
@@ -159,7 +172,7 @@ async def main():
     updater = Updater(token=token)
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
-    dp.add_handler(MessageHandler(Filters.group, lambda: None)) # ignore group chat messages
+    dp.add_handler(MessageHandler(Filters.group, lambda a, b: None)) # ignore group chat messages
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpMessage))
     dp.add_handler(CommandHandler("map", mapMessage))
@@ -167,7 +180,7 @@ async def main():
     dp.add_handler(CommandHandler("arrive", arrive))
     # dp.add_handler(CommandHandler("complete", complete))
     dp.add_handler(CommandHandler("stop", lambda a,b: asyncio.run(stop(a,b)), run_async=True))
-    dp.add_handler(CommandHandler("hint", hint))
+    # dp.add_handler(CommandHandler("hint", hint))
     dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, lambda a, b: asyncio.run(handlePhotoOrVideo(a,b))))
     dp.add_handler(MessageHandler(Filters.all, logMessage))
 
