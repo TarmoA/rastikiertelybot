@@ -1,24 +1,44 @@
+from databases import Database
+import logging
+import asyncio
+logger = logging.getLogger(__name__)
 
-def registerUser(userId, teamName):
-    pass
 
-def getTeamName(userId):
-    pass
+def getDB():
+    return Database('postgresql://postgres:asd@postgres?')
+
+async def init():
+    async with getDB() as database:
+        queries = [
+            """CREATE TABLE IF NOT EXISTS registrations (userid INTEGER UNIQUE, teamname VARCHAR(100))""",
+            """CREATE TABLE IF NOT EXISTS completions (userid INTEGER, messageid INTEGER, checkpointno INTEGER)"""
+        ]
+        for q in queries:
+            await database.execute(query=q)
+
+
+async def registerUser(userId, teamName):
+    async with getDB() as database:
+        query = "INSERT INTO registrations VALUES (:userid, :teamname) ON CONFLICT (userid) DO UPDATE SET teamname = :teamname WHERE registrations.userid = :userid"
+        await database.execute(query=query, values={ "userid": userId, "teamname": teamName})
+
+async def getTeamName(userId):
+    async with getDB() as database:
+        query = "SELECT * from registrations where userid = :userid"
+        row = await database.fetch_one(query=query, values={ "userid": userId})
+        print(row)
+        return row.get("teamname")
 
 def getUserId(teamName):
     pass
 
-completionStore = {}
-def storeCompletion(userId, messageId, checkpointNo):
-    items = completionStore.get(userId)
-    newItem = {"messageId": messageId, "checkpointNo": checkpointNo}
-    if not items:
-        completionStore[userId] = []
-    completionStore[userId].append(newItem)
-    return True
+async def storeCompletion(userId, messageId, checkpointNo):
+    async with getDB() as database:
+        query = "INSERT INTO completions VALUES (:userid, :messageid, :checkpointno)"
+        await database.execute(query=query, values={"userid": userId, "messageid": messageId, "checkpointno": checkpointNo})
 
-def getCompletions(userId):
-    items = completionStore.get(userId)
-    if not items:
-        return None
-    return items
+async def getCompletions(userId):
+    async with getDB() as database:
+        query = "SELECT * from completions where userid = :userid"
+        rows = await database.fetch_all(query=query, values={"userid": userId})
+        return map (lambda r: {"messageId": r.get("messageid")}, rows)

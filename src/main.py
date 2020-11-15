@@ -1,6 +1,6 @@
 # encoding: utf-8
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import logging, json, os, sys, re
+import logging, json, os, sys, re, asyncio
 import data
 
 # Enable logging
@@ -71,11 +71,15 @@ def mapMessage(update, context):
     text = mapLink
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
-def register(update, context):
-    text = """TODO rekisteröi"""
-
-    # TODO register to some db?
-    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+async def register(update, context):
+    text = update.message.text
+    teamName = text[9:].strip()
+    if not teamName:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Empty name not allowed")
+        return
+    await data.registerUser(update.effective_user.id, teamName)
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Registered team: " + teamName)
 
 def arrive(update, context):
     checkpointNo = parseCheckpointNumber(update)
@@ -113,7 +117,7 @@ def hint(update, context):
     reply = "Here is the hint for checkpoint " + str(checkpointNo) + ": \n\n" + getHint(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
 
-def handlePhotoOrVideo(update, context):
+async def handlePhotoOrVideo(update, context):
     """Handle a photo sent in by user"""
     message = update.message
     user = update.effective_user
@@ -136,27 +140,21 @@ def handlePhotoOrVideo(update, context):
     except:
         context.bot.send_message(chat_id=update.effective_chat.id, text="TODO invalid checkpoint throw")
         return
-    data.storeCompletion(user.id, messageId, checkpointNo)
+    await data.storeCompletion(user.id, messageId, checkpointNo)
     context.bot.send_message(
         chat_id=update.effective_chat.id, text="Completion proof received for checkpoint " + str(checkpointNo))
 
 
-
-        # context.bot.forward_message(chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id =update.message.message_id)
-
-
-
-#     else:
-#         update.message.reply_text('error')
-
-def stop(update, context):
-    completions = data.getCompletions(update.effective_user.id)
+async def stop(update, context):
+    completions = await data.getCompletions(update.effective_user.id)
     if not completions:
         context.bot.send_message(
             chat_id=update.effective_chat.id, text="No completion proofs received yet")
         return
+
+    teamName = await data.getTeamName(update.effective_user.id)
     context.bot.send_message(
-        chat_id=forwardId, text="Completion for user: " + str(update.effective_chat.id))
+        chat_id=forwardId, text="Completion for user: " + teamName)
     for item in completions:
         context.bot.forward_message(
             chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))
@@ -174,15 +172,13 @@ def error(update, context):
 def logMessage(update, context):
     logger.info(update.effective_chat.id)
     logger.info(update.message.text)
-    # logger.debug(update.message.text)
-    # logger.warning(update.message.text)
-    # context.bot.forward_message(
-    #     chat_id=forwardId, from_chat_id=update.effective_chat.id, message_id=update.message.message_id)
 
-def main():
+async def main():
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
     token = json.loads(open("key.json").read())['key']
+
+    await data.init()
 
     updater = Updater(token=token)
     # Get the dispatcher to register handlers
@@ -191,12 +187,12 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpMessage))
     dp.add_handler(CommandHandler("map", mapMessage))
-    dp.add_handler(CommandHandler("register", register))
+    dp.add_handler(CommandHandler("register", lambda a,b : asyncio.run(register(a,b)), run_async=True))
     dp.add_handler(CommandHandler("arrive", arrive))
     # dp.add_handler(CommandHandler("complete", complete))
-    dp.add_handler(CommandHandler("stop", stop))
+    dp.add_handler(CommandHandler("stop", lambda a,b: asyncio.run(stop(a,b)), run_async=True))
     dp.add_handler(CommandHandler("hint", hint))
-    dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, handlePhotoOrVideo))
+    dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, lambda a, b: asyncio.run(handlePhotoOrVideo(a,b))))
     dp.add_handler(MessageHandler(Filters.all, logMessage))
 
 
@@ -213,4 +209,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
