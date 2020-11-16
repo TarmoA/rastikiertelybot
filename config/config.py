@@ -1,4 +1,4 @@
-import json
+import os
 
 config = {
     "activeCheckpoints": range(1,3),
@@ -7,8 +7,6 @@ config = {
     "mapLink": "TODO link to map here",
 }
 
-secrets = json.loads(open("secrets.json").read())
-
-config["key"] = secrets["key"]
-config["forwardId"] = secrets["forwardId"]
-config["dbConnectionString"] = secrets["dbConnectionString"]
+config["key"] = os.environ["RASTIBOT_KEY"]
+config["forwardId"] =int(os.environ["RASTIBOT_FORWARD_ID"])
+config["dbConnectionString"] = os.environ["RASTIBOT_DB_STRING"]
