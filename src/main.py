@@ -165,9 +165,11 @@ async def stop(update, context):
             chat_id=update.effective_chat.id, text="No completion proofs received yet. Please send at least one before using this command")
         return
     completions.sort(key=lambda i: i["checkpointNo"])
-    teamName = await data.getTeamName(update.effective_user.id)
+    teamInfo = await data.getTeamInfo(update.effective_user.id)
+    teamName = teamInfo["teamname"]
+    teamId = teamInfo["teamid"]
     context.bot.send_message(
-        chat_id=config["forwardId"], text="Checkpoint completions for team: " + teamName)
+        chat_id=config["forwardId"], text="Checkpoint completions for team: " + teamName + " #team" + str(teamId))
     for item in completions:
         context.bot.forward_message(
             chat_id=config["forwardId"], from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))

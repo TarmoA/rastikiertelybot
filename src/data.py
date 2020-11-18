@@ -11,7 +11,7 @@ def getDB():
 async def init():
     async with getDB() as database:
         queries = [
-            """CREATE TABLE IF NOT EXISTS registrations (userid INTEGER UNIQUE, teamname VARCHAR(100))""",
+            """CREATE TABLE IF NOT EXISTS registrations (userid INTEGER UNIQUE, teamname VARCHAR(100), teamid SERIAL)""",
             """CREATE TABLE IF NOT EXISTS completions (userid INTEGER, messageid INTEGER, checkpointno INTEGER)"""
         ]
         for q in queries:
@@ -27,8 +27,13 @@ async def getTeamName(userId):
     async with getDB() as database:
         query = "SELECT * from registrations where userid = :userid"
         row = await database.fetch_one(query=query, values={ "userid": userId})
-        print(row)
         return row.get("teamname")
+
+async def getTeamInfo(userId):
+    async with getDB() as database:
+        query = "SELECT * from registrations where userid = :userid"
+        row = await database.fetch_one(query=query, values={"userid": userId})
+        return row
 
 def getUserId(teamName):
     pass

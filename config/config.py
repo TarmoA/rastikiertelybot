@@ -1,7 +1,7 @@
 import os
 
 config = {
-    "activeCheckpoints": range(1,6),
+    "activeCheckpoints": range(1,17),
     "instructionsDir": "./data/instructions/",
     "hintsDir": "./data/hints/",
     "mapLink": "TODO link to map here",
