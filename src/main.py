@@ -59,7 +59,7 @@ def start(update, context):
 
 3. Get instructions with "/arrive <checkpointNumber>". For example: "/arrive 1"
 
-4. Submit your task by sending a photo or video to the bot with check point number as caption. For example, send a photo with the caption "1"
+4. Submit your task by sending a text answer with "/answer <checkpointNumber> <answer>". For example "/answer 1 The sky is blue" and/or by sending a photo or video to the bot with check point number as caption. For example, send a photo with the caption "1". You can send multiple answers for a question if needed.
 
 5. Repeat instructions 2-4 for every checkpoint (or as many as you want to complete)
 
@@ -74,6 +74,7 @@ Commands
 /help - Get help
 /map - Get link to map
 /arrive <number> - Use this when you arrive to checkpoint to receive checkpoint instructions
+/answer <number> <answer> - Send a text answer to the bot for a checkpoint
 /stop - This command will signify that you have completed the checkpoint crawl and your submissions will be sent to the organisers.
 """
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
@@ -105,6 +106,18 @@ def arrive(update, context):
 
     reply = "Welcome to checkpoint " + str(checkpointNo) +"!\n\n" + getInstructions(checkpointNo)
     context.bot.send_message(chat_id=update.effective_chat.id, text=reply)
+    return
+
+async def answer(update, context):
+    checkpointNo = parseCheckpointNumber(update)
+    error = getCheckpointNumberError(checkpointNo)
+    if error:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=error)
+        return
+
+    await data.storeCompletion(update.effective_user.id, update.message.message_id, checkpointNo)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Answer received for checkpoint " + str(checkpointNo))
     return
 
 # def hint(update, context):
@@ -189,7 +202,7 @@ async def main():
     dp.add_handler(CommandHandler("map", mapMessage))
     dp.add_handler(CommandHandler("register", lambda a,b : asyncio.run(register(a,b)), run_async=True))
     dp.add_handler(CommandHandler("arrive", arrive))
-    # dp.add_handler(CommandHandler("complete", complete))
+    dp.add_handler(CommandHandler("answer", lambda a,b: asyncio.run(answer(a,b)), run_async=True))
     dp.add_handler(CommandHandler("stop", lambda a,b: asyncio.run(stop(a,b)), run_async=True))
     # dp.add_handler(CommandHandler("hint", hint))
     dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, lambda a, b: asyncio.run(handlePhotoOrVideo(a,b))))
