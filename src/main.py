@@ -29,9 +29,9 @@ def parseCheckpointNumber(update):
 # return error message or None
 def getCheckpointNumberError(checkpointNo):
     if checkpointNo == None:
-        return "Please give the checkpoint number"
+        return "Please give a valid checkpoint number"
     if checkpointNo not in config["activeCheckpoints"]:
-        return "Checkpoint number not found"
+        return "ERROR: Checkpoint number not active"
     return None
 
 def getInstructions(number):
@@ -51,24 +51,35 @@ def getHint(number):
         return "ERROR: hints not found"
 
 def start(update, context):
-    text = """
-Instructions
+    text = """Instructions
+1. Register your team with "/register <teamName>". For example:
+"/register Best team"
+
+2. Go to checkpoint shown on /map
+
+3. Get instructions with "/arrive <checkpointNumber>". For example: "/arrive 1"
+
+4. Submit your task by sending a photo or video to the bot with check point number as caption. For example, send a photo with the caption "1"
+
+5. Repeat instructions 2-4 for every checkpoint (or as many as you want to complete)
+
+6. Once you have completed enough checkpoints, send the command /stop to send your task proofs for the organisers and end the crawl.
+
+If you need help, please use the /help command.
+
 
 Commands
 /start - Show this help message
-/register <name> -  register your team name to the bot.
-/help - ???
-/map - get link to map
+/register <name> - register your team name to the bot. Using this multiple times will change your team name.
+/help - Get help
+/map - Get link to map
 /arrive <number> - Use this when you arrive to checkpoint to receive checkpoint instructions
 /stop - This command will signify that you have completed the checkpoint crawl and your submissions will be sent to the organisers.
-
-To get credit for completing checkpoints, send a video or photo to the bot, with checkpoint number as the caption.
-
 """
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def helpMessage(update, context):
-    text = """TODO mistä saa apua?"""
+    text = "If you have technical difficulties with the bot, please contact " + config["botContactPerson"] + ". For help with anything else, please contact " + config["contactPerson"]
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def mapMessage(update, context):
@@ -113,21 +124,21 @@ async def handlePhotoOrVideo(update, context):
     messageId = message.message_id
     if not message.photo and len(message.photo) and not message.video:
         context.bot.send_message(
-            chat_id=update.effective_chat.id, text="TODO no photo or video in message?")
+            chat_id=update.effective_chat.id, text="ERROR: no photo or video in message?")
         return
     if not message.caption:
         context.bot.send_message(
-            chat_id=update.effective_chat.id, text="Give checkpoint number in caption")
+            chat_id=update.effective_chat.id, text="Please give checkpoint number in caption")
         return
     try:
         checkpointNo = int(message.caption)
         error = getCheckpointNumberError(checkpointNo)
         if error:
             context.bot.send_message(
-                chat_id=update.effective_chat.id, text="TODO invalid checkpoint")
+                chat_id=update.effective_chat.id, text=error)
             return
     except:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="TODO invalid checkpoint throw")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="ERROR: invalid checkpoint thrown")
         return
     await data.storeCompletion(user.id, messageId, checkpointNo)
     context.bot.send_message(
@@ -138,12 +149,12 @@ async def stop(update, context):
     completions = await data.getCompletions(update.effective_user.id)
     if not completions or not len(completions):
         context.bot.send_message(
-            chat_id=update.effective_chat.id, text="No completion proofs received yet")
+            chat_id=update.effective_chat.id, text="No completion proofs received yet. Please send at least one before using this command")
         return
     completions.sort(key=lambda i: i["checkpointNo"])
     teamName = await data.getTeamName(update.effective_user.id)
     context.bot.send_message(
-        chat_id=config["forwardId"], text="Completion for team: " + teamName)
+        chat_id=config["forwardId"], text="Checkpoint completions for team: " + teamName)
     for item in completions:
         context.bot.forward_message(
             chat_id=config["forwardId"], from_chat_id=update.effective_chat.id, message_id=item.get("messageId"))
@@ -155,7 +166,7 @@ def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
     context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Message caused bot error")
+        chat_id=update.effective_chat.id, text="ERROR: Message caused bot error")
 
 
 def logMessage(update, context):
@@ -182,7 +193,7 @@ async def main():
     dp.add_handler(CommandHandler("stop", lambda a,b: asyncio.run(stop(a,b)), run_async=True))
     # dp.add_handler(CommandHandler("hint", hint))
     dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, lambda a, b: asyncio.run(handlePhotoOrVideo(a,b))))
-    dp.add_handler(MessageHandler(Filters.all, logMessage))
+    dp.add_handler(MessageHandler(Filters.all, logMessage)) # log messages that don't fit any other filter
 
 
     # log all errors
