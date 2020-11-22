@@ -92,7 +92,7 @@ async def register(update, context):
     teamName = text[9:].strip()
     if not teamName:
         context.bot.send_message(
-            chat_id=update.effective_chat.id, text="Empty name not allowed")
+            chat_id=update.effective_chat.id, text="Please give your team name like \"/register teamName\"")
         return
     await data.registerUser(update.effective_user.id, teamName)
     context.bot.send_message(chat_id=update.effective_chat.id, text="Registered team: " + teamName)
