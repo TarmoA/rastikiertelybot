@@ -80,7 +80,7 @@ Commands
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def helpMessage(update, context):
-    text = "If you have technical difficulties with the bot, please contact " + config["botContactPerson"] + ". For help with anything else, please contact " + config["contactPerson"]
+    text = "If you have technical difficulties with the bot, please contact " + config["botContactPerson"] + config["help"]
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def mapMessage(update, context):
