@@ -48,3 +48,9 @@ async def getCompletions(userId):
         query = "SELECT * from completions where userid = :userid"
         rows = await database.fetch_all(query=query, values={"userid": userId})
         return list(map(lambda r: {"messageId": r.get("messageid"), "checkpointNo": r.get("checkpointno")}, rows))
+
+async def getDataByTeamId(teamid):
+    async with getDB() as database:
+        query = "SELECT * from completions, registrations where teamid = :teamid and completions.userid = registrations.userid"
+        rows = await database.fetch_all(query=query, values={"teamid": teamid})
+        return list(rows)

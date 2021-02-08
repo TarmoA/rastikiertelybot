@@ -1,6 +1,6 @@
 # encoding: utf-8
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import logging, os, sys, re, asyncio
+import logging, os, sys, re, asyncio, time
 import data
 from config import config
 
@@ -188,6 +188,22 @@ def logMessage(update, context):
     logger.info(update.effective_chat.id)
     logger.info(update.message.text)
 
+# function to dump all data from db to telegram chat
+# use with care as this easily hits bot spam limits for too many messages
+async def dump(update, context):
+    allGroupIds = range(0,1) # TODO set this to include all group ids
+    for i in allGroupIds:
+        res = await data.getDataByTeamId(i)
+        res.sort(key=lambda i: i["checkpointno"])
+        context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Checkpoint completions for team: " + res[0].get("teamname") + " #team" + str(res[0].get("teamid")))
+        for item in res:
+            time.sleep(3) # TODO set to something bigger?
+            # print(res)
+            context.bot.forward_message(
+                chat_id=update.effective_chat.id, from_chat_id=item.get("userid"), message_id=item.get("messageid"))
+
+
 async def main():
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
@@ -206,6 +222,9 @@ async def main():
     dp.add_handler(CommandHandler("arrive", arrive))
     dp.add_handler(CommandHandler("answer", lambda a,b: asyncio.run(answer(a,b)), run_async=True))
     dp.add_handler(CommandHandler("stop", lambda a,b: asyncio.run(stop(a,b)), run_async=True))
+
+    # don't use the dump command while the bot is in use, it has not been tested
+    # dp.add_handler(CommandHandler("dump", lambda a,b: asyncio.run(dump(a,b)), run_async=True))
     # dp.add_handler(CommandHandler("hint", hint))
     dp.add_handler(MessageHandler((Filters.video | Filters.photo) & Filters.private, lambda a, b: asyncio.run(handlePhotoOrVideo(a,b))))
     dp.add_handler(MessageHandler(Filters.all, logMessage)) # log messages that don't fit any other filter
