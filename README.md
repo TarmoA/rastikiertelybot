@@ -8,6 +8,8 @@ Running the bot is easiest with docker. Build with:
 `docker build .`
 
 Some environment variables are required:
+|Variable name|Description|
+|---|---|
 | RASTIBOT_KEY | Telegram bot token |
 | RASTIBOT_FORWARD_ID | Telegram group id where to forward checkpoint answers |
 | RASTIBOT_DB_STRING | DB connection string, like "postgresql://user:password@postgres" |
@@ -18,4 +20,5 @@ For example, if you have a postgres docker container with name "postgres" in net
 I used PostgreSQL database, but any other might work as well.
 
 ## Data
-The bot reads checkpoint instructions from data/instructions and the files are named like NUMBER.txt
+The bot reads checkpoint instructions from data/instructions and the files are named like NUMBER.txt.
+Some stuff should be changed from config/config.py
